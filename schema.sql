@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS jobs(
+	id UUID PRIMARY KEY,
+	status TEXT NOT NULL DEFAULT 'pending',
+	file_path TEXT,
+	created_at TIMESTAMPTZ DEFAULT NOW()
+);
