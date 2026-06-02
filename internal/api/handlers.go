@@ -37,8 +37,14 @@ func (s *Server) handleUpload(w http.ResponseWriter, r* http.Request){
 
 	id := uuid.New().String()
 
+	err = s.store.WriteJob(r.Context(), id, savePath)
+	if err != nil{
+		http.Error(w, "failed to write job to database", http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(map[string]string{"job_id" : id})
+	json.NewEncoder(w).Encode(map[string]string{"job_id" : id, "filepath" : savePath})
 
 
 }
