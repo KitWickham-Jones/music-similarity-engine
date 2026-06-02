@@ -1,17 +1,20 @@
 package api
 
 import (
-	"net/http"
 	"log"
+	"net/http"
+	"github.com/kitwj/music-similarity-engine/internal/db"
 )
 
 type Server struct{
 	router *http.ServeMux
+	store *db.Store
 }
 
-func New() *Server{
+func New(db* db.Store) *Server{
 	s := &Server{
 		router: http.NewServeMux(),
+		store: db,
 	}
 	s.router.HandleFunc("POST /upload", s.handleUpload)
 	return s 
