@@ -6,6 +6,7 @@ import time
 import logging
 import contextlib
 import os
+import librosa
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -18,7 +19,7 @@ def log_time(label):
 	yield
 	logger.info(f"{label} in {time.time() - start:.2f}s")
 
-class VectorGenerator:
+class TrackProcessor:
 	def __init__(self):
 		with log_time("Loaded CLAP Model"):
 			self.model = self.model = ClapModel.from_pretrained("laion/clap-htsat-unfused")
@@ -26,6 +27,7 @@ class VectorGenerator:
 			self.processor = ClapProcessor.from_pretrained("laion/clap-htsat-unfused")
 		self.sr = None
 		self.waveform = None
+		self.y = None
 
 	def load_song(self, songPath: str, jobID: str):
 		try:
@@ -35,6 +37,7 @@ class VectorGenerator:
 				self.waveform, self.sr = torchaudio.load(songPath)
 			if self.sr != 48000:
 				self.rescale_song(self.waveform, self.sr)
+			self.y = self.waveform.mean(dim=0).numpy()
 		except Exception as e:
 			logger.error(f"Job {jobID} failed: {e}")
 
@@ -44,10 +47,23 @@ class VectorGenerator:
 			self.waveform = resampler(waveform)
 	
 	def extract_embedding(self):
-		y = self.waveform.mean(dim=0).numpy()
 		with log_time("Processor"):
-			inputs = self.processor(audio=y, return_tensors="pt", sampling_rate=48000)
+			inputs = self.processor(audio=self.y, return_tensors="pt", sampling_rate=48000)
 		with log_time("CLAP inferences"), torch.no_grad():
 			embedding = self.model.get_audio_features(**inputs)
-		return embedding.pooler_output[0].numpy().tolist()	
+		return embedding.pooler_output[0].numpy().tolist()
 
+	def extract_metainfo(self):
+		with log_time("Extracting metainformation"):
+			tempo, _ = librosa.beat.beat_track(y = self.y, sr= self.sr)
+		return tempo 
+	
+	def process(self, songPath: str, jobID: str):
+		self.load_song(songPath=songPath, jobID=jobID)
+		if self.y is None:
+			logger.error(f"Job {jobID} failed to load")
+			return
+		vector = self.extract_embedding()
+		BPM = self.extract_metainfo()
+		logger.info(f"BPM: {BPM}, vector dims: {len(vector)}")
+		
