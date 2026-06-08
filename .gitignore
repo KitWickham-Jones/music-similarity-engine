@@ -6,3 +6,6 @@ jungle.mp3
 .vscode
 
 CLAUDE.md
+
+__pycache__/
+*.pyc
