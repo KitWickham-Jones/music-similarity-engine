@@ -51,11 +51,11 @@ class TrackProcessor:
 		return embedding.pooler_output[0].numpy().tolist()
 
 	def extract_metainfo(self):
-		with log_time("Extracting metainformation"):
-			tempo, _ = librosa.beat.beat_track(y = self.y, sr= self.sr)
-			tempo = round(float(tempo[0]))
+		with log_time("Extracting metadata"):
+			bpm, _ = librosa.beat.beat_track(y = self.y, sr= self.sr)
+			bpm = round(float(bpm[0]))
 			duration = self.waveform.shape[1] / self.sr
-		return {"tempo":tempo, "duration" : duration}
+		return {"bpm": bpm, "duration": duration}
 	
 	def process(self, songPath: str, jobID: str):
 		#Cleanup previous state
@@ -65,8 +65,11 @@ class TrackProcessor:
 		if self.y is None:
 			logger.error(f"Job {jobID} failed to load")
 			return
-		vector = self.extract_embedding()
+		embedding = self.extract_embedding()
 		meta = self.extract_metainfo()
-		logger.info(f"BPM: {meta["tempo"]}, duration: {meta["duration"]}, vector dims: {len(vector)}")
+		return {
+			"embedding" : embedding,
+			"metadata" : meta 
+		}
 		
 

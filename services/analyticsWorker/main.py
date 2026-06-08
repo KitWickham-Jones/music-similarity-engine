@@ -1,26 +1,16 @@
-import psycopg2.extras
+import psycopg2
+from database import claim_job, write_track_analytics
 from worker import TrackProcessor
 from dotenv import load_dotenv 
 import logging
 import sys
 import os
+import time
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
-
-#probs migrate this to separate file
-def claim_job(conn: psycopg2.extensions.connection) -> dict | None:
-	with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-		cur.execute("""
-			SELECT id, file_path FROM jobs
-			WHERE status = 'pending'
-			ORDER BY created_at
-			LIMIT 1
-			FOR UPDATE SKIP LOCKED
-		""")
-		return cur.fetchone()
 
 def main():
 	try:
@@ -30,14 +20,25 @@ def main():
 		conn = psycopg2.connect(db_url)
 		logger.info("DB Connection succesfull.")
 		worker = TrackProcessor()
-		job = claim_job(conn)
-		logger.info(f"Job {job["id"]} claimed")
-		worker.process(job["file_path"], job["id"])
-		# while True:
-		# 	job = claim_job(conn)
-		# 	worker.process(job["id"], job["file_path"])
-		# job = claim_job(conn)
-		# logger.info(f"Job claimed: {job["id"]} location: {job["file_path"]}")
+		while True:
+			job = claim_job(conn)
+			if not job:
+				time.sleep(15)
+				continue
+			logger.info(f"Claimed job {job["id"]}")
+			try:
+				results = worker.process(job["file_path"], job["id"])
+				write_track_analytics(
+					conn, job["id"], 
+					results["metadata"]["duration"],
+					results["metadata"]["bpm"],
+					results["embedding"]
+				)
+				logger.info(f"Successfully wrote {job["id"]} to db")
+				sys.exit(1)
+			except Exception as e:
+				logger.error(f"Job {job["id"]} failed: {e}")
+				sys.exit(1)
 	except Exception as e:
 		logger.error(f"Failed to connect to DB: {e}")
 		sys.exit(1)
