@@ -1,5 +1,5 @@
 import psycopg2
-from database import claim_job, write_track_analytics
+from database import claim_job, write_track_analytics, update_job_status
 from worker import TrackProcessor
 from dotenv import load_dotenv 
 import logging
@@ -24,6 +24,7 @@ def main():
 			job = claim_job(conn)
 			if not job:
 				time.sleep(15)
+				logger.info("No jobs present")
 				continue
 			logger.info(f"Claimed job {job["id"]}")
 			try:
@@ -35,7 +36,7 @@ def main():
 					results["embedding"]
 				)
 				logger.info(f"Successfully wrote {job["id"]} to db")
-				sys.exit(1)
+				update_job_status(conn, job["id"], "complete")
 			except Exception as e:
 				logger.error(f"Job {job["id"]} failed: {e}")
 				sys.exit(1)
