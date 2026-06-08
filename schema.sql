@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS vector;
 CREATE TYPE job_status AS ENUM ('pending', 'processing', 'complete', 'failed');
 CREATE TYPE worker_status AS ENUM ('idle', 'processing');
 

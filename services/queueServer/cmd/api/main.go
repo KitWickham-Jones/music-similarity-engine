@@ -13,7 +13,7 @@ import (
 
 
 func main(){
-	godotenv.Load()
+	godotenv.Load("/Users/kitwj/Documents/Personal/Projects/QueuedMusicAnalysis/.env")
 	cfg := config.Load()
 	dbCon, err := pgxpool.New(context.Background(), cfg.DatabaseURL )
 	if err != nil{
