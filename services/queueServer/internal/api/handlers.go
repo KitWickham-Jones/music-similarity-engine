@@ -25,8 +25,8 @@ func (s *Server) handleUpload(w http.ResponseWriter, r* http.Request){
 		return
 	}
 
-	savePath := filepath.Join("uploads", header.Filename)
-	os.MkdirAll("uploads", 0755)
+	savePath := filepath.Join("/tmp/uploads", header.Filename)
+	os.MkdirAll("/tmp/uploads", 0755)
 	dst, err := os.Create(savePath)
 	if err != nil {
 		http.Error(w, "failed to save file", http.StatusInternalServerError)

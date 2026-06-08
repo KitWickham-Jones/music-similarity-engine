@@ -53,6 +53,7 @@ class TrackProcessor:
 	def extract_metainfo(self):
 		with log_time("Extracting metainformation"):
 			tempo, _ = librosa.beat.beat_track(y = self.y, sr= self.sr)
+			tempo = round(float(tempo[0]))
 			duration = self.waveform.shape[1] / self.sr
 		return {"tempo":tempo, "duration" : duration}
 	

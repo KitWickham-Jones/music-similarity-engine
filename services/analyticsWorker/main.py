@@ -10,6 +10,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
+#probs migrate this to separate file
 def claim_job(conn: psycopg2.extensions.connection) -> dict | None:
 	with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
 		cur.execute("""
@@ -27,9 +28,16 @@ def main():
 		load_dotenv()
 		db_url = os.getenv("DATABASE_URL")
 		conn = psycopg2.connect(db_url)
-		logger.info("DB Connection succesfull. Checking jobs")
+		logger.info("DB Connection succesfull.")
+		worker = TrackProcessor()
 		job = claim_job(conn)
-		logger.info(f"Job claimed: {job["id"]} location: {job["file_path"]}")
+		logger.info(f"Job {job["id"]} claimed")
+		worker.process(job["file_path"], job["id"])
+		# while True:
+		# 	job = claim_job(conn)
+		# 	worker.process(job["id"], job["file_path"])
+		# job = claim_job(conn)
+		# logger.info(f"Job claimed: {job["id"]} location: {job["file_path"]}")
 	except Exception as e:
 		logger.error(f"Failed to connect to DB: {e}")
 		sys.exit(1)
