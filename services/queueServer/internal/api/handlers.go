@@ -3,15 +3,16 @@ package api
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
-func (s *Server) handleUpload(w http.ResponseWriter, r* http.Request){
-
+func (s *Server) handleUpload(w http.ResponseWriter, r *http.Request){
 	r.ParseMultipartForm(50 << 20)
 
 	file, header, err := r.FormFile("audio")
@@ -48,4 +49,30 @@ func (s *Server) handleUpload(w http.ResponseWriter, r* http.Request){
 
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]string{"track_title": track_title, "job_id" : id, "filepath" : savePath})
+}
+
+func (s *Server) handleQueryJobStatus(w http.ResponseWriter, r *http.Request){
+	
+	jobID := r.PathValue("jobID")
+	if jobID == ""{
+		http.NotFound(w, r)
+		return
+	}
+
+	status, err := s.store.QueryJobStatus(r.Context(), jobID)
+	if err == pgx.ErrNoRows{
+		http.Error(w, "job not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		log.Printf("GetJobStatus failed for job %s: %v", jobID, err)
+		http.Error(w, "Internal failure", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"job_id" : jobID,
+		"status" : status,
+	})
 }

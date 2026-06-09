@@ -17,6 +17,7 @@ func New(db* db.Store) *Server{
 		store: db,
 	}
 	s.router.HandleFunc("POST /upload", s.handleUpload)
+	s.router.HandleFunc("GET /jobs/{jobID}", s.handleQueryJobStatus)
 	return s 
 }
 

@@ -21,3 +21,12 @@ func (s *Store) WriteJob(ctx context.Context, jobUUID string, track_title string
 	)
 	return err
 }
+
+func (s *Store) QueryJobStatus(ctx context.Context, jobUUID string) (string, error){
+	var status string
+	err := s.postgres.QueryRow(ctx,
+		"SELECT status FROM jobs WHERE id = ($1)",
+		jobUUID,
+	).Scan(&status)
+	return status, err
+}
