@@ -43,7 +43,7 @@ class TrackProcessor:
 		with log_time("Rescaled waveform"):
 			self.waveform = resampler(waveform)
 	
-	def extract_embedding(self):
+	def extract_embedding(self) -> list[float]:
 		with log_time("Processor"):
 			inputs = self.processor(audio=self.y, return_tensors="pt", sampling_rate=48000)
 		with log_time("CLAP inferences"), torch.no_grad():

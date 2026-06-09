@@ -1,5 +1,5 @@
 import psycopg2
-from database import claim_job, write_track_analytics, update_job_status
+from database import Database
 from worker import TrackProcessor
 from dotenv import load_dotenv 
 import logging
@@ -19,9 +19,10 @@ def main():
 		db_url = os.getenv("DATABASE_URL")
 		conn = psycopg2.connect(db_url)
 		logger.info("DB Connection succesfull.")
+		database = Database(conn)
 		worker = TrackProcessor()
 		while True:
-			job = claim_job(conn)
+			job = database.claim_job()
 			if not job:
 				time.sleep(15)
 				logger.info("No jobs present")
@@ -29,14 +30,14 @@ def main():
 			logger.info(f"Claimed job {job["id"]}")
 			try:
 				results = worker.process(job["file_path"], job["id"])
-				write_track_analytics(
-					conn, job["id"], 
+				database.write_track_analytics(
+					job["id"],
 					results["metadata"]["duration"],
 					results["metadata"]["bpm"],
 					results["embedding"]
 				)
 				logger.info(f"Successfully wrote {job["id"]} to db")
-				update_job_status(conn, job["id"], "complete")
+				database.update_job_status(job["id"], "complete")
 			except Exception as e:
 				logger.error(f"Job {job["id"]} failed: {e}")
 				sys.exit(1)
