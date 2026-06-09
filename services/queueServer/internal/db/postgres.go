@@ -14,10 +14,10 @@ func New (db *pgxpool.Pool) *Store{
 	}
 }
 
-func (s *Store) WriteJob(ctx context.Context, jobUUID string, filepath string) error{
+func (s *Store) WriteJob(ctx context.Context, jobUUID string, track_title string, filepath string) error{
 	_ , err := s.postgres.Exec(ctx,
-		"INSERT INTO jobs (id, file_path) VALUES ($1, $2)",
-		jobUUID, filepath,
+		"INSERT INTO jobs (id, track_title,file_path) VALUES ($1, $2, $3)",
+		jobUUID, track_title, filepath,
 	)
 	return err
 }

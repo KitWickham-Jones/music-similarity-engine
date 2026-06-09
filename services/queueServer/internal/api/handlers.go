@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"github.com/google/uuid"
 )
 
@@ -35,16 +36,16 @@ func (s *Server) handleUpload(w http.ResponseWriter, r* http.Request){
 	defer dst.Close()
 	io.Copy(dst, file)
 
+	track_title :=  strings.TrimSuffix(header.Filename, filepath.Ext(header.Filename))
+
 	id := uuid.New().String()
 
-	err = s.store.WriteJob(r.Context(), id, savePath)
+	err = s.store.WriteJob(r.Context(), id, track_title ,savePath)
 	if err != nil{
 		http.Error(w, "failed to write job to database", http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusAccepted)
-	json.NewEncoder(w).Encode(map[string]string{"job_id" : id, "filepath" : savePath})
-
-
+	json.NewEncoder(w).Encode(map[string]string{"track_title": track_title, "job_id" : id, "filepath" : savePath})
 }
