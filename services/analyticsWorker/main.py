@@ -22,11 +22,8 @@ def main():
 		database = Database(conn)
 		worker = TrackProcessor()
 		while True:
-			job = database.claim_job()
-			if not job:
-				time.sleep(15)
-				logger.info("No jobs present")
-				continue
+			#blocks until job has arrived 
+			job = database.wait_for_job()
 			logger.info(f"Claimed job {job["id"]}")
 			try:
 				results = worker.process(job["file_path"], job["id"])
@@ -38,6 +35,7 @@ def main():
 				)
 				logger.info(f"Successfully wrote {job["id"]} to db")
 				database.update_job_status(job["id"], "complete")
+				continue
 			except Exception as e:
 				logger.error(f"Job {job["id"]} failed: {e}")
 				sys.exit(1)

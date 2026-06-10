@@ -1,9 +1,27 @@
 import psycopg2.extras
+import select
 
 class Database:
 	def __init__(self, conn: psycopg2.extensions.connection):
 		self.conn = conn
+		self.conn.set_isolation_level(0)
+		
+		#auto init the consumer
+		with self.conn.cursor() as cur:
+			cur.execute("LISTEN job_ready")
 	
+	
+	def wait_for_job(self):
+		#this blocks until activity occurs on the connection (this must be specific to the worker)
+		#(system call magic)
+		select.select([self.conn], [], [])
+		# literally just cleanup function, could jump straight into claiming the job but then messages accumulate in the buffer
+		self.conn.poll()
+		#poll -> notices which can then be cleared
+		self.conn.notices.clear()
+		#actual job is claimed
+		return self.claim_job()
+
 	def claim_job(self):
 		with self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
 			cur.execute("""

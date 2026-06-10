@@ -27,3 +27,17 @@ CREATE TABLE IF NOT EXISTS workers(
 	current_job_id UUID REFERENCES jobs(id),
 	status worker_status NOT NULL DEFAULT 'idle'
 );
+
+
+CREATE OR REPLACE FUNCTION notify_job_ready()
+RETURNS trigger AS $$
+BEGIN
+	PERFORM pg_notify('job_ready', NEW.id::text);
+	RETURN NEW;
+END;
+
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER job_insert_notify
+AFTER INSERT ON jobs
+FOR EACH ROW EXECUTE FUNCTION notify_job_ready();
