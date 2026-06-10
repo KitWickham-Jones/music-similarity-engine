@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 import logging
 import sys
 import os
-import time
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logging.getLogger("httpx").setLevel(logging.WARNING)
