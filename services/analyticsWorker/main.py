@@ -24,6 +24,7 @@ def main():
 			#blocks until job has arrived 
 			job = database.wait_for_job()
 			logger.info(f"Claimed job {job["id"]}")
+			database.update_job_status(job["id"], 'processing')
 			try:
 				results = worker.process(job["file_path"], job["id"])
 				database.write_track_analytics(
@@ -34,7 +35,6 @@ def main():
 				)
 				logger.info(f"Successfully wrote {job["id"]} to db")
 				database.update_job_status(job["id"], "complete")
-				continue
 			except Exception as e:
 				logger.error(f"Job {job["id"]} failed: {e}")
 				sys.exit(1)

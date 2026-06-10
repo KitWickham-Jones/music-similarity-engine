@@ -18,7 +18,7 @@ class Database:
 		# literally just cleanup function, could jump straight into claiming the job but then messages accumulate in the buffer
 		self.conn.poll()
 		#poll -> notices which can then be cleared
-		self.conn.notices.clear()
+		self.conn.notifies.clear()
 		#actual job is claimed
 		return self.claim_job()
 
@@ -33,12 +33,12 @@ class Database:
 			""")
 			return cur.fetchone()
 	
-	def write_track_analytics(self, job_id:str, duation: float, bpm: float, embedding: list[float]  ):
+	def write_track_analytics(self, job_id:str, duration: float, bpm: float, embedding: list[float]  ):
 		with self.conn.cursor() as cur:
 			cur.execute("""
 				INSERT INTO tracks (job_id, duration, bpm, embedding)
 				VALUES (%s, %s, %s, %s)
-			""",(job_id, duation, bpm, embedding))
+			""",(job_id, duration, bpm, embedding))
 			self.conn.commit()
 	
 	def update_job_status(self, job_id:str, status: str):

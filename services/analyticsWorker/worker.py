@@ -19,7 +19,7 @@ def log_time(label):
 class TrackProcessor:
 	def __init__(self):
 		with log_time("Loaded CLAP Model"):
-			self.model = self.model = ClapModel.from_pretrained("laion/clap-htsat-unfused")
+			self.model = ClapModel.from_pretrained("laion/clap-htsat-unfused")
 		with log_time("Loading CLAP Processor"):
 			self.processor = ClapProcessor.from_pretrained("laion/clap-htsat-unfused")
 		self.sr = None
