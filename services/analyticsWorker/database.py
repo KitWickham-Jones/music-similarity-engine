@@ -12,15 +12,21 @@ class Database:
 	
 	
 	def wait_for_job(self):
-		#this blocks until activity occurs on the connection (this must be specific to the worker)
-		#(system call magic)
-		select.select([self.conn], [], [])
-		# literally just cleanup function, could jump straight into claiming the job but then messages accumulate in the buffer
-		self.conn.poll()
-		#poll -> notices which can then be cleared
-		self.conn.notifies.clear()
-		#actual job is claimed
-		return self.claim_job()
+		# putting this in a loop to permit multithreading ()
+		# librosa + CLAP are just wrappers for C processes meaning you can spawn multiple
+		# threads, as when they go into c prcesses the GIL is free
+		while True:	
+			#this blocks until activity occurs on the connection (this must be specific to the worker)
+			#(system call magic)
+			select.select([self.conn], [], [])
+			# literally just cleanup function, could jump straight into claiming the job but then messages accumulate in the buffer
+			self.conn.poll()
+			#poll -> notices which can then be cleared
+			self.conn.notifies.clear()
+			#actual job is claimed
+			job = self.claim_job()
+			if job is not None:
+				return job
 
 	def claim_job(self):
 		with self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:

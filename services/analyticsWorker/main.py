@@ -1,9 +1,7 @@
-import psycopg2
-from database import Database
-from worker import TrackProcessor
+from pool import start_pool
 from dotenv import load_dotenv 
 import logging
-import sys
+
 import os
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -12,36 +10,9 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 def main():
-	try:
-		logger.info("Worker started, connecting to DB")
-		load_dotenv()
-		db_url = os.getenv("DATABASE_URL")
-		conn = psycopg2.connect(db_url)
-		logger.info("DB Connection succesfull.")
-		database = Database(conn)
-		worker = TrackProcessor()
-		while True:
-			#blocks until job has arrived 
-			job = database.wait_for_job()
-			logger.info(f"Claimed job {job["id"]}")
-			database.update_job_status(job["id"], 'processing')
-			try:
-				results = worker.process(job["file_path"], job["id"])
-				database.write_track_analytics(
-					job["id"],
-					results["metadata"]["duration"],
-					results["metadata"]["bpm"],
-					results["embedding"]
-				)
-				logger.info(f"Successfully wrote {job["id"]} to db")
-				database.update_job_status(job["id"], "complete")
-			except Exception as e:
-				logger.error(f"Job {job["id"]} failed: {e}")
-				sys.exit(1)
-	except Exception as e:
-		logger.error(f"Failed to connect to DB: {e}")
-		sys.exit(1)
-
+	load_dotenv()
+	db_url = os.getenv("DATABASE_URL")
+	start_pool(db_url, 2)
 
 if __name__ == "__main__":
 	main()
