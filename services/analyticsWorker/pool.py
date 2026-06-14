@@ -63,6 +63,7 @@ def worker_loop(db_url: str, worker: TrackProcessor):
 			except Exception as e:
 				logger.error(f"Job {job["id"]} failed: {e}")
 				worker_db.clear_worker_job(worker_id)
+				worker_db.update_job_status(job["id"], 'failed')
 				current_job[0] = None
 	
 	except psycopg2.OperationalError as e:
