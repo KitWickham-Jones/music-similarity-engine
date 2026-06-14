@@ -48,7 +48,7 @@ def worker_loop(db_url: str, worker: TrackProcessor):
 			logger.info(f"worker_id:{worker_id[:8]} claimed job {job["id"]}")
 			worker_db.update_job_status(job["id"], 'processing')
 			try:
-				results = worker.process(job["file_path"], job["id"])
+				results = worker.process(job["file_path"])
 				worker_db.write_track_analytics(
 					job["id"],
 					results["metadata"]["duration"],

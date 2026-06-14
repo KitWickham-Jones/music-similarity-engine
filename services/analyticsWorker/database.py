@@ -12,6 +12,10 @@ class ListenerDatabase:
 		# librosa + CLAP are just wrappers for C processes meaning you can spawn multiple
 		# threads, as when they go into c prcesses the GIL is free
 		while True:	
+			#check for pending jobs before blocking
+			job = self.claim_job()
+			if job is not None:
+				return job
 			#this blocks until activity occurs on the connection (this must be specific to the worker)
 			#(system call magic)
 			select.select([self.conn], [], [])
@@ -19,11 +23,8 @@ class ListenerDatabase:
 			self.conn.poll()
 			#poll -> notices which can then be cleared
 			self.conn.notifies.clear()
-			#actual job is claimed
-			job = self.claim_job()
-			if job is not None:
-				return job
-
+			#actual job is claimed by going back to the top and also drains job buffer
+	
 	def claim_job(self):
 		with self.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
 			cur.execute("""
