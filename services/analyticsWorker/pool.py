@@ -1,4 +1,5 @@
 import threading
+from multiprocessing import Process
 import psycopg2
 from database import ListenerDatabase, WorkerDatabase
 from worker import TrackProcessor
@@ -83,9 +84,20 @@ def start_pool(db_url: str, num_workers: int):
 		threading.Thread(target=worker_loop, args=(db_url, processor), daemon=True)
 		for _ in range(num_workers)
 	]
+	logger.info("Starting thread pool")
 	for t in threads:
 		t.start()
 	for t in threads:
 		t.join()
 
-
+#If resources allow
+def start_process(db_url: str, num_thread_workers: int, num_processes: int):
+	processes = [
+		Process(target=start_pool, args=(db_url, num_thread_workers))
+		for _ in range(num_processes)
+	]
+	logger.info("Starting process pool")
+	for p in processes:
+		p.start()
+	for p in processes:
+		p.join()
