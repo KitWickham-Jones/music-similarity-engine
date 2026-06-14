@@ -1,15 +1,11 @@
 import psycopg2.extras
 import select
-
-class Database:
+class ListenerDatabase:
 	def __init__(self, conn: psycopg2.extensions.connection):
 		self.conn = conn
-		self.conn.set_isolation_level(0)
-		
 		#auto init the consumer
 		with self.conn.cursor() as cur:
 			cur.execute("LISTEN job_ready")
-	
 	
 	def wait_for_job(self):
 		# putting this in a loop to permit multithreading ()
@@ -39,16 +35,42 @@ class Database:
 			""")
 			return cur.fetchone()
 	
+class WorkerDatabase:
+	def __init__(self, conn: psycopg2.extensions.connection):
+		self.conn = conn
+	
+	def register_worker(self, worker_uuid: str):
+		with self.conn.cursor() as cur:
+			cur.execute("""
+				INSERT INTO workers (id)
+				VALUES (%s)
+			""",(worker_uuid,))
+	
+	def set_worker_job(self, worker_uuid: str, current_job):
+		with self.conn.cursor() as cur:
+			cur.execute("UPDATE workers SET current_job_id = %s, status = 'processing' WHERE id = %s",
+				(current_job, worker_uuid))
+	
+	def clear_worker_job(self, worker_uuid: str):
+		with self.conn.cursor() as cur:
+			cur.execute("UPDATE workers SET current_job_id = NULL, status = 'idle' WHERE id = %s",
+			   (worker_uuid,))
+	
 	def write_track_analytics(self, job_id:str, duration: float, bpm: float, embedding: list[float]  ):
 		with self.conn.cursor() as cur:
 			cur.execute("""
 				INSERT INTO tracks (job_id, duration, bpm, embedding)
 				VALUES (%s, %s, %s, %s)
 			""",(job_id, duration, bpm, embedding))
-			self.conn.commit()
 	
 	def update_job_status(self, job_id:str, status: str):
 		with self.conn.cursor() as cur:
 			cur.execute("UPDATE jobs SET status = %s WHERE id = %s",
 				(status, job_id))
+
+	#this is called on a non-autocommiting connection
+	def worker_heartbeat(self, worker_uuid: str):
+		with self.conn.cursor() as cur:
+			cur.execute("UPDATE workers SET last_heartbeat = NOW() WHERE id = %s",
+				(worker_uuid,))
 			self.conn.commit()

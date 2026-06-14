@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS tracks(
 
 CREATE TABLE IF NOT EXISTS workers(
 	id UUID PRIMARY KEY,
+	started_at TIMESTAMPTZ DEFAULT NOW(),
 	last_heartbeat TIMESTAMPTZ DEFAULT NOW(),
 	current_job_id UUID REFERENCES jobs(id),
 	status worker_status NOT NULL DEFAULT 'idle'
