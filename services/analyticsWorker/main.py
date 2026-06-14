@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 def main():
 	load_dotenv()
 	db_url = os.getenv("DATABASE_URL")
+	if db_url is None:
+		raise ValueError("DATABASE_URL environment var not set")
 	start_pool(db_url, 2)
 
 if __name__ == "__main__":
